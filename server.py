@@ -1,7 +1,7 @@
 # server.py
 from flask import Flask
 
-SECRET_MESSAGE = "fluffy tail"
+SECRET_MESSAGE = "fluffy tail2"
 app = Flask(__name__)
 
 @app.route("/")
