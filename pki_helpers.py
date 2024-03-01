@@ -1,4 +1,4 @@
-# pki_helpers.py
+# pki_helpers.py - privkey part
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -22,7 +22,7 @@ def generate_private_key(filename: str, passphrase: str):
 
     return private_key
 
-# pki_helpers.py
+# pki_helpers.py - pubkey part
 from datetime import datetime, timedelta
 from cryptography import x509
 from cryptography.x509.oid import NameOID
@@ -70,3 +70,36 @@ def generate_public_key(private_key, filename, **kwargs):
         certfile.write(public_key.public_bytes(serialization.Encoding.PEM))
 
     return public_key
+
+# pki_helpers.py - csr part
+def generate_csr(private_key, filename, **kwargs):
+    subject = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, kwargs["country"]),
+            x509.NameAttribute(
+                NameOID.STATE_OR_PROVINCE_NAME, kwargs["state"]
+            ),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, kwargs["locality"]),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, kwargs["org"]),
+            x509.NameAttribute(NameOID.COMMON_NAME, kwargs["hostname"]),
+        ]
+    )
+
+    # Generate any alternative dns names
+    alt_names = []
+    for name in kwargs.get("alt_names", []):
+        alt_names.append(x509.DNSName(name))
+    san = x509.SubjectAlternativeName(alt_names)
+
+    builder = (
+        x509.CertificateSigningRequestBuilder()
+        .subject_name(subject)
+        .add_extension(san, critical=False)
+    )
+
+    csr = builder.sign(private_key, hashes.SHA256(), default_backend())
+
+    with open(filename, "wb") as csrfile:
+        csrfile.write(csr.public_bytes(serialization.Encoding.PEM))
+
+    return csr
